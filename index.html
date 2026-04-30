@@ -104,50 +104,66 @@ body {
 .schedule-time { font-family:'Playfair Display',serif; font-size:12px; color:var(--wheat); min-width:52px; font-weight:700; line-height:1.5; }
 .schedule-label { font-size:12px; color:var(--ink-light); line-height:1.6; flex:1; }
 
-/* ── PILL TIMER (RAF fill-button, dual-layer text) ── */
-.timer-pill-wrap { position:relative; margin-top:8px; }
+/* ── PILL TIMER BUTTON (simple, one-at-a-time) ── */
 .timer-pill {
-  position:relative; width:100%; height:40px;
+  display:block; width:100%; height:38px; margin-top:8px;
   border-radius:30px; border:2px solid var(--sage);
-  overflow:hidden; cursor:pointer; outline:none;
-  background:transparent; padding:0;
-  user-select:none; -webkit-tap-highlight-color:transparent;
-  transition:box-shadow .2s, border-color .25s;
-  display:block;
-}
-.timer-pill:hover { box-shadow:0 4px 14px rgba(61,107,53,.22); }
-.timer-pill[data-status="paused"]  { border-color:var(--wheat); }
-.timer-pill[data-status="complete"]{ border-color:var(--sage); }
-.pill-bg   { position:absolute; inset:0; background:rgba(253,250,242,.92); }
-.pill-fill { position:absolute; inset-y:0; left:0; width:0%; background:var(--sage); will-change:width; }
-.pill-dark,.pill-white {
-  position:absolute; inset:0;
-  display:flex; align-items:center; justify-content:center; gap:6px;
+  background:transparent; color:var(--sage);
   font-family:'Lora',serif; font-size:12px; font-weight:700;
-  white-space:nowrap; pointer-events:none; letter-spacing:.15px;
+  cursor:pointer; outline:none; user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  transition:background .2s, border-color .2s, color .2s, box-shadow .2s;
+  letter-spacing:.1px;
 }
-.pill-dark  { color:var(--sage); }
-.pill-white { color:white; clip-path:inset(0 100% 0 0); will-change:clip-path; }
-.timer-pill[data-status="paused"]  .pill-dark  { color:var(--wheat); }
-.timer-pill[data-status="paused"]  .pill-white { color:white; }
-/* Info row + tooltip */
-.timer-pill-row { display:flex; align-items:center; gap:7px; }
-.timer-pill-row .timer-pill { flex:1; }
-.pill-info-btn {
-  width:22px; height:22px; flex-shrink:0;
-  border-radius:50%; border:1.5px solid rgba(200,150,42,.5);
+.timer-pill:hover { background:rgba(61,107,53,.07); box-shadow:0 3px 10px rgba(61,107,53,.15); }
+.timer-pill[data-status="running"]  { background:rgba(61,107,53,.1); }
+.timer-pill[data-status="paused"]   { border-color:var(--wheat); color:var(--wheat); background:rgba(200,150,42,.07); }
+.timer-pill[data-status="complete"] { background:var(--sage); color:white; }
+/* Schedule section info */
+.schedule-title-row { display:flex; align-items:center; gap:7px; margin-bottom:12px; }
+.schedule-title-row .schedule-title { margin-bottom:0; }
+.sched-info-btn {
+  width:17px; height:17px; flex-shrink:0;
+  border-radius:50%; border:1.5px solid rgba(200,150,42,.55);
   background:transparent; color:var(--wheat);
-  font-size:11px; font-weight:700; font-family:'Lora',serif;
+  font-size:10px; font-weight:700; font-family:'Lora',serif;
   cursor:pointer; display:flex; align-items:center; justify-content:center;
-  transition:all .15s; line-height:1;
+  transition:all .15s;
 }
-.pill-info-btn:hover { background:var(--wheat-pale); border-color:var(--wheat); }
-.pill-info-pop {
-  display:none; margin-top:6px;
+.sched-info-btn:hover { background:var(--wheat-pale); }
+.sched-info-pop {
+  display:none; font-size:11px; color:var(--ink-light);
+  font-style:italic; line-height:1.5; margin-bottom:10px;
+}
+/* ── TOP TIMER BAR (fixed, one globally active timer) ── */
+.top-timer-bar {
+  position:fixed; top:0; left:50%; transform:translateX(-50%);
+  width:100%; max-width:430px; z-index:500;
+  pointer-events:none;
+}
+.top-timer-track {
+  height:4px; background:rgba(61,107,53,.18); width:100%;
+}
+.top-timer-fill {
+  height:100%; width:0%; background:var(--sage); will-change:width;
+}
+.top-timer-chip {
+  position:absolute; right:10px; top:6px;
+  display:flex; align-items:center; gap:5px;
   background:var(--ink); color:var(--wheat-pale);
-  font-size:11px; line-height:1.55; font-family:'Lora',serif;
-  padding:8px 12px; border-radius:10px;
+  border-radius:20px; padding:3px 9px 3px 8px;
+  font-family:'Lora',serif; font-size:11px; font-weight:700;
+  pointer-events:all; box-shadow:0 2px 8px rgba(28,18,8,.28);
+  white-space:nowrap;
 }
+.top-timer-chip-icon { font-size:12px; }
+.top-timer-chip-time { font-family:'Playfair Display',serif; font-size:13px; letter-spacing:-.3px; }
+.top-timer-chip-x {
+  background:none; border:none; color:var(--wheat-pale);
+  font-size:14px; cursor:pointer; padding:0 0 0 3px;
+  opacity:.6; line-height:1;
+}
+.top-timer-chip-x:hover { opacity:1; }
 @keyframes screenFlash {
   0%   { opacity:0 }
   20%  { opacity:1 }
@@ -210,6 +226,18 @@ body {
 </head>
 <body>
 <div id="app"></div>
+
+<!-- FIXED TOP TIMER BAR -->
+<div id="topTimerBar" style="display:none" class="top-timer-bar">
+  <div class="top-timer-track">
+    <div class="top-timer-fill" id="topTimerFill"></div>
+  </div>
+  <div class="top-timer-chip">
+    <span class="top-timer-chip-icon">⏱</span>
+    <span class="top-timer-chip-time" id="topTimerTime">00:00</span>
+    <button class="top-timer-chip-x" onclick="stopTopTimer()">×</button>
+  </div>
+</div>
 
 <script>
 // ══════════════════════════════════════════════════════════════════════════════
@@ -685,7 +713,7 @@ let answers = { q1:null, q2:null, q3:null, q4:null, ovenTemp:250, kitchenTemp:'w
 // Apply saved scale on load
 document.documentElement.style.setProperty('--scale', currentScale);
 
-// (timer state lives in _pillStates WeakMap — see PILL TIMER section)
+// (global timer state: _activeBtn, _rafId, _elapsed, _duration)
 
 // ══════════════════════════════════════════════════════════════════════════════
 // HELPERS
@@ -768,87 +796,90 @@ function scoreFlours() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// PILL TIMER — requestAnimationFrame, dual-layer color-split text
+// GLOBAL TIMER — one active at a time, top-bar progress
 // ══════════════════════════════════════════════════════════════════════════════
-const _pillStates = new WeakMap();
-
-function _ps(btn){
-  if(!_pillStates.has(btn)){
-    _pillStates.set(btn,{
-      status:'idle', rafId:null, startTime:null, accumulated:0, elapsed:0,
-      duration:parseFloat(btn.dataset.minutes||1)*60*1000
-    });
-  }
-  return _pillStates.get(btn);
-}
+let _activeBtn=null, _rafId=null, _startTime=null;
+let _accumulated=0, _elapsed=0, _duration=0;
 
 function handlePillClick(btn){
-  const s=_ps(btn);
-  if(s.status==='idle'||s.status==='paused') _pillStart(btn,s);
-  else if(s.status==='running') _pillPause(btn,s);
-  else if(s.status==='complete') _pillReset(btn,s);
+  if(_activeBtn===btn){
+    const st=btn.dataset.status;
+    if(st==='running') _timerPause(btn);
+    else if(st==='paused') _timerRun(btn);
+    else if(st==='complete') _timerReset(btn);
+  } else {
+    if(_activeBtn) _timerReset(_activeBtn);
+    _timerStart(btn);
+  }
 }
 
-function _pillStart(btn,s){
-  if('Notification' in window && Notification.permission==='default') Notification.requestPermission();
-  s.startTime=null; s.status='running'; btn.dataset.status='running';
+function _timerStart(btn){
+  _activeBtn=btn;
+  _duration=parseFloat(btn.dataset.minutes||1)*60*1000;
+  _accumulated=0; _elapsed=0; _startTime=null;
+  btn.dataset.status='running';
+  btn.textContent=`⏸ ${btn.dataset.minutes} ${lang==='hu'?'perc':'min'}`;
+  document.getElementById('topTimerBar').style.display='block';
+  document.getElementById('topTimerFill').style.width='0%';
+  _timerRun(btn);
+}
+
+function _timerRun(btn){
+  btn.dataset.status='running';
+  _startTime=null;
   const tick=(time)=>{
-    if(!s.startTime) s.startTime=time;
-    s.elapsed=s.accumulated+(time-s.startTime);
-    const prog=Math.min(s.elapsed/s.duration*100,100);
-    _pillSetProg(btn,prog);
-    if(s.elapsed<s.duration){
-      s.rafId=requestAnimationFrame(tick);
-    } else {
-      s.status='complete'; btn.dataset.status='complete';
-      _pillSetProg(btn,100);
-      _pillSetText(btn,`✓&nbsp;${lang==='hu'?'Kész!':'Done!'}`);
-      _onPillDone(btn);
-    }
+    if(!_startTime) _startTime=time;
+    _elapsed=_accumulated+(time-_startTime);
+    const prog=Math.min(_elapsed/_duration*100,100);
+    const remSec=Math.max(0,Math.ceil((_duration-_elapsed)/1000));
+    document.getElementById('topTimerFill').style.width=prog+'%';
+    document.getElementById('topTimerTime').textContent=fmt(remSec);
+    if(_elapsed<_duration){ _rafId=requestAnimationFrame(tick); }
+    else { _timerComplete(btn); }
   };
-  s.rafId=requestAnimationFrame(tick);
+  _rafId=requestAnimationFrame(tick);
 }
 
-function _pillPause(btn,s){
-  if(s.rafId){ cancelAnimationFrame(s.rafId); s.rafId=null; }
-  s.accumulated=s.elapsed; s.startTime=null;
-  s.status='paused'; btn.dataset.status='paused';
-  // text stays unchanged — fill position frozen
+function _timerPause(btn){
+  if(_rafId){ cancelAnimationFrame(_rafId); _rafId=null; }
+  _accumulated=_elapsed; _startTime=null;
+  btn.dataset.status='paused';
+  const remSec=Math.max(0,Math.ceil((_duration-_elapsed)/1000));
+  btn.textContent=`▶ ${fmt(remSec)}`;
 }
 
-function _pillReset(btn,s){
-  if(s.rafId){ cancelAnimationFrame(s.rafId); s.rafId=null; }
-  s.status='idle'; s.accumulated=0; s.elapsed=0; s.startTime=null;
-  btn.dataset.status='idle';
-  _pillSetProg(btn,0);
-  _pillSetText(btn, btn.dataset.idleText||'▶');
-}
-
-function _pillSetProg(btn,pct){
-  btn.querySelector('.pill-fill').style.width=pct+'%';
-  btn.querySelector('.pill-white').style.clipPath=`inset(0 ${Math.max(0,100-pct).toFixed(3)}% 0 0)`;
-}
-
-function _pillSetText(btn,html){
-  btn.querySelector('.pill-dark').innerHTML=html;
-  btn.querySelector('.pill-white').innerHTML=html;
-}
-
-function togglePillInfo(infoBtn){
-  const pop=infoBtn.closest('.timer-pill-wrap').querySelector('.pill-info-pop');
-  if(pop) pop.style.display=pop.style.display==='none'?'block':'none';
-}
-
-function _onPillDone(btn){
+function _timerComplete(btn){
+  if(_rafId){ cancelAnimationFrame(_rafId); _rafId=null; }
+  btn.dataset.status='complete';
+  btn.textContent=`✓ ${lang==='hu'?'Kész!':'Done!'}`;
+  document.getElementById('topTimerFill').style.width='100%';
   beep();
   if(navigator.vibrate) navigator.vibrate([300,100,300,100,500]);
   flashScreen();
-  if('Notification' in window && Notification.permission==='granted'){
-    new Notification(lang==='hu'?'🎉 Időzítő lejárt!':'🎉 Timer done!',{
-      body:lang==='hu'?'A sütési lépés befejeződött.':'Your baking step is complete.',
-      silent:true
-    });
+}
+
+function _timerReset(btn){
+  if(_rafId){ cancelAnimationFrame(_rafId); _rafId=null; }
+  if(btn && document.contains(btn)){
+    btn.dataset.status='idle';
+    const mins=btn.dataset.minutes||'?';
+    btn.textContent=`▶ ${mins} ${lang==='hu'?'perc':'min'}`;
   }
+  if(_activeBtn===btn) _activeBtn=null;
+  document.getElementById('topTimerBar').style.display='none';
+  document.getElementById('topTimerFill').style.width='0%';
+}
+
+function stopTopTimer(){
+  if(_activeBtn) _timerReset(_activeBtn);
+  else {
+    document.getElementById('topTimerBar').style.display='none';
+  }
+}
+
+function toggleSchedInfo(btn){
+  const pop=btn.closest('.schedule-block').querySelector('.sched-info-pop');
+  if(pop) pop.style.display=pop.style.display==='none'?'block':'none';
 }
 
 function flashScreen(){
@@ -952,33 +983,18 @@ function renderResults(){
   const klMap={cool:t('kitchenLabelCool'),warm:t('kitchenLabelWarm'),hot:t('kitchenLabelHot')};
   const elMap={beginner:t('expBeginner'),intermediate:t('expIntermediate'),advanced:t('expAdvanced')};
 
-  const infoTxt=lang==='hu'
-    ? 'Kattints az indításhoz · szünethez kattints újra · kész után kattints a visszaállításhoz'
-    : 'Tap to start · tap again to pause · tap when done to reset';
   const schedHtml=sched.map((s,i)=>{
     if(!s.minutes) return `<div class="schedule-item">
       <div class="schedule-dot"></div>
       <div class="schedule-time">${s.time}</div>
       <div class="schedule-label">${s.label}</div>
     </div>`;
-    const idleTxt=`▶&nbsp;${s.minutes} ${t('min')}`;
     return `<div class="schedule-item">
       <div class="schedule-dot"></div>
       <div class="schedule-time">${s.time}</div>
       <div class="schedule-label">${s.label}
-        <div class="timer-pill-wrap">
-          <div class="timer-pill-row">
-            <button class="timer-pill" data-minutes="${s.minutes}" data-status="idle" data-idle-text="${idleTxt}"
-              onclick="handlePillClick(this)">
-              <div class="pill-bg"></div>
-              <div class="pill-fill"></div>
-              <div class="pill-dark">${idleTxt}</div>
-              <div class="pill-white">${idleTxt}</div>
-            </button>
-            <button class="pill-info-btn" onclick="togglePillInfo(this)">!</button>
-          </div>
-          <div class="pill-info-pop" style="display:none">${infoTxt}</div>
-        </div>
+        <button class="timer-pill" data-minutes="${s.minutes}" data-status="idle"
+          onclick="handlePillClick(this)">▶ ${s.minutes} ${t('min')}</button>
       </div>
     </div>`;
   }).join('');
@@ -1021,7 +1037,13 @@ function renderResults(){
             : `<strong>What does this mean?</strong> Add <strong>${hyd}g of water</strong> per 100g flour. E.g. 500g flour → <strong>${Math.round(hyd*5)}g water</strong> (${Math.round(hyd*5)}ml).`}</div>
         </div>
         <div class="schedule-block">
-          <div class="schedule-title">${t('scheduleTitle')}</div>
+          <div class="schedule-title-row">
+            <div class="schedule-title">${t('scheduleTitle')}</div>
+            <button class="sched-info-btn" onclick="toggleSchedInfo(this)">!</button>
+          </div>
+          <div class="sched-info-pop" style="display:none">${lang==='hu'
+            ?'Kattints a gombra az indításhoz · ismét kattintva szünet · kész után kattintva visszaállítás. Egyszerre csak egy stopper futhat.'
+            :'Tap a button to start · tap again to pause · tap when done to reset. Only one timer runs at a time.'}</div>
           ${schedHtml}
         </div>
         <div class="buy-block">
